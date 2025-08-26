@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  arbitrage-monitor:
+    build: .
+    container_name: arbitrage-monitor
+    environment:
+      - MIN_SPREAD_PCT=0.3  # Minimum spread percentage to alert on
+    volumes:
+      - ./data:/app/data  # Mount for CSV output
+    restart: unless-stopped
+
+  # Optional: Add a simple web dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: arbitrage-dashboard
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - arbitrage-monitor
+    restart: unless-stopped
