@@ -6,6 +6,12 @@ import logging
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 @dataclass
 class PriceData:
@@ -54,10 +60,39 @@ class ArbitrageMonitor:
     async def fetch_coingecko_prices(self) -> List[PriceData]:
         """
         Fetch prices from CoinGecko API
-        API: https://api.coingecko.com/api/v3/simple/price
         """
-        # TODO: Implement CoinGecko API integration
-        pass
+        symbol_map = {
+            'BTCUSD': 'bitcoin',
+            'ETHUSD': 'ethereum',
+            'SOLUSD': 'solana',
+            'AVAXUSD': 'avalanche-2'
+        }
+
+        ids = ','.join(symbol_map.values())
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_vol=true"
+        prices = []
+
+        try:
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+
+                    for symbol, coin_id in symbol_map.items():
+                        if coin_id in data:
+                            coin_data = data[coin_id]
+                            prices.append(PriceData(
+                                exchange='coingecko',
+                                symbol=symbol,
+                                price=float(coin_data['usd']),
+                                volume_24h=coin_data.get('usd_24h_vol'),
+                                timestamp=datetime.now()
+                            ))
+        except Exception as e:
+            logger.error(f"Error fetching CoinGecko prices: {e}")
+
+        print(f"Fetched CoinGecko prices: {len(prices)}")
+
+        return prices
 
     async def fetch_binance_prices(self) -> List[PriceData]:
         """
@@ -70,12 +105,32 @@ class ArbitrageMonitor:
     async def fetch_all_prices(self) -> Dict[str, List[PriceData]]:
         """
         Fetch prices from all exchanges concurrently
-        Use asyncio.gather() to run all fetch methods simultaneously
         """
-        # TODO: Run all fetch methods concurrently
-        # TODO: Handle exceptions gracefully
-        # TODO: Group results by symbol
-        pass
+        tasks = [
+            self.fetch_coinbase_prices(),
+            self.fetch_coingecko_prices(),
+            self.fetch_binance_prices()
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        all_prices = []
+
+        for result in results:
+            if isinstance(result, list):
+                all_prices.extend(result)
+            else:
+                logger.error(f"Error in price fetch: {result}")
+
+        # Group by symbol
+        grouped_prices = {}
+        for price in all_prices:
+            if price.symbol not in grouped_prices:
+                grouped_prices[price.symbol] = []
+            grouped_prices[price.symbol].append(price)
+
+        print(grouped_prices)
+
+        return grouped_prices
 
     def find_arbitrage_opportunities(self, price_groups: Dict[str, List[PriceData]]) -> List[ArbitrageOpportunity]:
         """
@@ -112,7 +167,8 @@ class ArbitrageMonitor:
 
 async def main():
     """Main entry point - run a few demo cycles"""
-    # TODO: Create monitor instance and run demo cycles
+    async with ArbitrageMonitor() as monitor:
+        await monitor.fetch_all_prices()
     pass
 
 
