@@ -36,12 +36,12 @@ class ArbitrageMonitor:
         self.symbols = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'AVAX-USD']
 
     async def __aenter__(self):
-        # TODO: Initialize aiohttp session
-        pass
+        self.session = aiohttp.ClientSession()
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # TODO: Close aiohttp session
-        pass
+        if self.session:
+            await self.session.close()
 
     async def fetch_coinbase_prices(self) -> List[PriceData]:
         """
