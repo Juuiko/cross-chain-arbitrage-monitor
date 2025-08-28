@@ -38,7 +38,7 @@ class ArbitrageMonitor:
         self.session = None
         self.price_data: Dict[str, List[PriceData]] = {}
         self.opportunities: List[ArbitrageOpportunity] = []
-        self.min_spread_pct = 0.5
+        self.min_spread_pct = 0.2
         self.symbols = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'AVAX-USD']
 
     async def __aenter__(self):
@@ -157,11 +157,34 @@ class ArbitrageMonitor:
     def find_arbitrage_opportunities(self, price_groups: Dict[str, List[PriceData]]) -> List[ArbitrageOpportunity]:
         """
         Find arbitrage opportunities from grouped price data
-        Logic: For each symbol, find min/max price across exchanges
-        Calculate spread percentage: (max_price - min_price) / min_price * 100
         """
-        # TODO: Implement arbitrage detection logic
-        pass
+        opportunities = []
+
+        for symbol, prices in price_groups.items():
+            if len(prices) < 2:
+                continue
+
+            # Sort by price to find min and max
+            sorted_prices = sorted(prices, key=lambda x: x.price)
+            min_price = sorted_prices[0]
+            max_price = sorted_prices[-1]
+
+            # Calculate spread percentage
+            spread_pct = ((max_price.price - min_price.price) / min_price.price) * 100
+
+            if spread_pct >= self.min_spread_pct:
+                opportunity = ArbitrageOpportunity(
+                    symbol=symbol,
+                    buy_exchange=min_price.exchange,
+                    sell_exchange=max_price.exchange,
+                    buy_price=min_price.price,
+                    sell_price=max_price.price,
+                    spread_pct=spread_pct,
+                    timestamp=datetime.now()
+                )
+                opportunities.append(opportunity)
+
+        return opportunities
 
     def log_opportunities(self, opportunities: List[ArbitrageOpportunity]):
         """Log found opportunities to console"""
@@ -176,10 +199,17 @@ class ArbitrageMonitor:
 
     async def run_monitoring_cycle(self):
         """Run one complete monitoring cycle"""
-        # TODO: Fetch all prices
-        # TODO: Find opportunities
-        # TODO: Log and save results
-        pass
+        logger.info("🔍 Starting arbitrage monitoring cycle...")
+
+        # Fetch prices from all exchanges
+        price_groups = await self.fetch_all_prices()
+
+        # Find opportunities
+        opportunities = self.find_arbitrage_opportunities(price_groups)
+
+        print(opportunities)
+
+        return opportunities
 
     async def start_monitoring(self, interval_seconds: int = 30):
         """Start continuous monitoring loop"""
@@ -190,7 +220,7 @@ class ArbitrageMonitor:
 async def main():
     """Main entry point - run a few demo cycles"""
     async with ArbitrageMonitor() as monitor:
-        await monitor.fetch_all_prices()
+        await monitor.run_monitoring_cycle()
     pass
 
 
