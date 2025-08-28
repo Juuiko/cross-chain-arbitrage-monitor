@@ -182,7 +182,8 @@ class ArbitrageMonitor:
 
         return opportunities
 
-    def log_opportunities(self, opportunities: List[ArbitrageOpportunity]):
+    @staticmethod
+    def log_opportunities(opportunities: List[ArbitrageOpportunity]):
         """Log found opportunities to console"""
         if not opportunities:
             logger.info("No arbitrage opportunities found")
@@ -196,11 +197,34 @@ class ArbitrageMonitor:
                 f"Spread: {opp.spread_pct:.2f}%"
             )
 
-    def save_to_csv(self, opportunities: List[ArbitrageOpportunity], filename: str = "opportunities.csv"):
+    @staticmethod
+    def save_to_csv(opportunities: List[ArbitrageOpportunity], filename: str = "opportunities.csv"):
         """Save opportunities to CSV using pandas"""
-        # TODO: Convert opportunities to DataFrame
-        # TODO: Append to existing CSV or create new one
-        pass
+        if not opportunities:
+            return
+
+        df = pd.DataFrame([
+            {
+                'timestamp': opp.timestamp,
+                'symbol': opp.symbol,
+                'buy_exchange': opp.buy_exchange,
+                'sell_exchange': opp.sell_exchange,
+                'buy_price': opp.buy_price,
+                'sell_price': opp.sell_price,
+                'spread_pct': opp.spread_pct
+            }
+            for opp in opportunities
+        ])
+
+        # Append to existing file or create new
+        try:
+            existing_df = pd.read_csv(filename)
+            combined_df = pd.concat([existing_df, df], ignore_index=True)
+        except FileNotFoundError:
+            combined_df = df
+
+        combined_df.to_csv(filename, index=False)
+        logger.info(f"Saved {len(opportunities)} opportunities to {filename}")
 
     async def run_monitoring_cycle(self):
         """Run one complete monitoring cycle"""
@@ -212,7 +236,11 @@ class ArbitrageMonitor:
         # Find opportunities
         opportunities = self.find_arbitrage_opportunities(price_groups)
 
+        # Log opportunities in console
         self.log_opportunities(opportunities)
+
+        # Save opportunities to our csv
+        self.save_to_csv(opportunities)
 
         return opportunities
 
