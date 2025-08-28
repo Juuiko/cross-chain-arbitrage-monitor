@@ -52,10 +52,32 @@ class ArbitrageMonitor:
     async def fetch_coinbase_prices(self) -> List[PriceData]:
         """
         Fetch prices from Coinbase Pro API
-        API: https://api.exchange.coinbase.com/products/{symbol}/stats
         """
-        # TODO: Implement Coinbase API integration
-        pass
+        url = "https://api.exchange.coinbase.com/products"
+        prices = []
+
+        try:
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    products = await response.json()
+
+                    for symbol in self.symbols:
+                        # Get 24hr stats for each symbol
+                        stats_url = f"https://api.exchange.coinbase.com/products/{symbol}/stats"
+                        async with self.session.get(stats_url) as stats_response:
+                            if stats_response.status == 200:
+                                stats = await stats_response.json()
+                                prices.append(PriceData(
+                                    exchange='coinbase',
+                                    symbol=symbol.replace('-', ''),  # Normalize symbol
+                                    price=float(stats['last']),
+                                    volume_24h=float(stats['volume']),
+                                    timestamp=datetime.now()
+                                ))
+        except Exception as e:
+            logger.error(f"Error fetching Coinbase prices: {e}")
+
+        return prices
 
     async def fetch_coingecko_prices(self) -> List[PriceData]:
         """
@@ -108,8 +130,8 @@ class ArbitrageMonitor:
         """
         tasks = [
             self.fetch_coinbase_prices(),
-            self.fetch_coingecko_prices(),
-            self.fetch_binance_prices()
+            self.fetch_coingecko_prices()
+            #self.fetch_binance_prices()
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
