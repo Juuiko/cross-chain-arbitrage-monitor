@@ -38,7 +38,7 @@ class ArbitrageMonitor:
         self.session = None
         self.price_data: Dict[str, List[PriceData]] = {}
         self.opportunities: List[ArbitrageOpportunity] = []
-        self.min_spread_pct = 0.2
+        self.min_spread_pct = 0.1
         self.symbols = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'AVAX-USD']
 
     async def __aenter__(self):
@@ -112,8 +112,6 @@ class ArbitrageMonitor:
         except Exception as e:
             logger.error(f"Error fetching CoinGecko prices: {e}")
 
-        print(f"Fetched CoinGecko prices: {len(prices)}")
-
         return prices
 
     async def fetch_binance_prices(self) -> List[PriceData]:
@@ -149,8 +147,6 @@ class ArbitrageMonitor:
             if price.symbol not in grouped_prices:
                 grouped_prices[price.symbol] = []
             grouped_prices[price.symbol].append(price)
-
-        print(grouped_prices)
 
         return grouped_prices
 
@@ -188,8 +184,17 @@ class ArbitrageMonitor:
 
     def log_opportunities(self, opportunities: List[ArbitrageOpportunity]):
         """Log found opportunities to console"""
-        # TODO: Format and log opportunities
-        pass
+        if not opportunities:
+            logger.info("No arbitrage opportunities found")
+            return
+
+        logger.info(f"Found {len(opportunities)} arbitrage opportunities:")
+        for opp in opportunities:
+            logger.info(
+                f"🚀 {opp.symbol}: Buy {opp.buy_exchange} @ ${opp.buy_price:.2f} | "
+                f"Sell {opp.sell_exchange} @ ${opp.sell_price:.2f} | "
+                f"Spread: {opp.spread_pct:.2f}%"
+            )
 
     def save_to_csv(self, opportunities: List[ArbitrageOpportunity], filename: str = "opportunities.csv"):
         """Save opportunities to CSV using pandas"""
@@ -207,21 +212,36 @@ class ArbitrageMonitor:
         # Find opportunities
         opportunities = self.find_arbitrage_opportunities(price_groups)
 
-        print(opportunities)
+        self.log_opportunities(opportunities)
 
         return opportunities
 
     async def start_monitoring(self, interval_seconds: int = 30):
         """Start continuous monitoring loop"""
-        # TODO: Implement continuous monitoring with error handling
-        pass
+        logger.info(f"🚀 Starting continuous arbitrage monitoring (interval: {interval_seconds}s)")
+
+        while True:
+            try:
+                await self.run_monitoring_cycle()
+                await asyncio.sleep(interval_seconds)
+            except KeyboardInterrupt:
+                logger.info("Monitoring stopped by user")
+                break
+            except Exception as e:
+                logger.error(f"Error in monitoring cycle: {e}")
+                await asyncio.sleep(interval_seconds)
 
 
 async def main():
     """Main entry point - run a few demo cycles"""
     async with ArbitrageMonitor() as monitor:
-        await monitor.run_monitoring_cycle()
-    pass
+        # For MVP: run a few cycles then exit
+        for i in range(5):
+            logger.info(f"Cycle {i + 1}/5")
+            await monitor.run_monitoring_cycle()
+            await asyncio.sleep(10)
+
+        print("MVP demo complete!")
 
 
 if __name__ == "__main__":
