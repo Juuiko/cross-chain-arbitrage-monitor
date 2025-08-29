@@ -38,7 +38,7 @@ class ArbitrageMonitor:
         self.session = None
         self.price_data: Dict[str, List[PriceData]] = {}
         self.opportunities: List[ArbitrageOpportunity] = []
-        self.min_spread_pct = 0.05
+        self.min_spread_pct = 0.2
         self.symbols = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'AVAX-USD']
 
     async def __aenter__(self):
@@ -117,10 +117,37 @@ class ArbitrageMonitor:
     async def fetch_binance_prices(self) -> List[PriceData]:
         """
         Fetch prices from Binance API
-        API: https://api.binance.com/api/v3/ticker/24hr
         """
-        # TODO: Implement Binance API integration
-        pass
+        # Map our symbols to Binance format
+        binance_symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'AVAXUSDT']
+        symbol_map = {
+            'BTCUSDT': 'BTCUSD',
+            'ETHUSDT': 'ETHUSD',
+            'SOLUSDT': 'SOLUSD',
+            'AVAXUSDT': 'AVAXUSD'
+        }
+
+        url = "https://api.binance.com/api/v3/ticker/24hr"
+        prices = []
+
+        try:
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    tickers = await response.json()
+
+                    for ticker in tickers:
+                        if ticker['symbol'] in binance_symbols:
+                            prices.append(PriceData(
+                                exchange='binance',
+                                symbol=symbol_map[ticker['symbol']],
+                                price=float(ticker['lastPrice']),
+                                volume_24h=float(ticker['volume']),
+                                timestamp=datetime.now()
+                            ))
+        except Exception as e:
+            logger.error(f"Error fetching Binance prices: {e}")
+
+        return prices
 
     async def fetch_all_prices(self) -> Dict[str, List[PriceData]]:
         """
@@ -128,8 +155,8 @@ class ArbitrageMonitor:
         """
         tasks = [
             self.fetch_coinbase_prices(),
-            self.fetch_coingecko_prices()
-            #self.fetch_binance_prices()
+            self.fetch_coingecko_prices(),
+            self.fetch_binance_prices()
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
