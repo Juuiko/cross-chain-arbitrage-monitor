@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbitrage Monitor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+      .opportunities-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: calc(100vh - 320px); /* Fill remaining height */
+            display: flex;
+            flex-direction: column;
+        }
+
+        #opportunities-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        #opportunities-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #opportunities-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        #opportunities-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        #opportunities-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .opportunity-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .opportunity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .symbol {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .spread {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .opportunity-details {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.7;
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left-color: #f44336;
+            color: #ffcdd2;
+        }
+
+        @media (max-width: 768px) {
+            .opportunity-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Arbitrage Monitor</h1>
+            <p>Real-time cryptocurrency arbitrage opportunities</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-opportunities">-</div>
+                <div class="stat-label">Total Opportunities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avg-spread">-</div>
+                <div class="stat-label">Average Spread</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="max-spread">-</div>
+                <div class="stat-label">Max Spread</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-update">-</div>
+                <div class="stat-label">Last Update</div>
+            </div>
+        </div>
+
+        <div class="opportunities-section">
+            <h2 class="section-title">📈 Recent Opportunities (Last Hour)</h2>
+            <div id="opportunities-container">
+                <div class="loading">Loading opportunities...</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()" title="Refresh Data">
+        ↻
+    </button>
+
+    <script>
+        async function loadOpportunities() {
+            try {
+                const response = await fetch('/api/opportunities');
+                const data = await response.json();
+
+                const container = document.getElementById('opportunities-container');
+
+                if (data.success && data.opportunities.length > 0) {
+                    container.innerHTML = data.opportunities.map(opp => `
+                        <div class="opportunity-item">
+                            <div class="opportunity-header">
+                                <span class="symbol">${opp.symbol}</span>
+                                <span class="spread">${opp.spread_pct.toFixed(2)}%</span>
+                            </div>
+                            <div class="opportunity-details">
+                                Buy ${opp.buy_exchange} @ $${opp.buy_price.toFixed(2)} •
+                                Sell ${opp.sell_exchange} @ $${opp.sell_price.toFixed(2)} •
+                                ${new Date(opp.timestamp).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="opportunity-item error">
+                            <div class="opportunity-header">
+                                <span class="symbol">No Opportunities</span>
+                            </div>
+                            <div class="opportunity-details">
+                                ${data.message || 'No arbitrage opportunities found in the last hour'}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('opportunities-container').innerHTML = `
+                    <div class="opportunity-item error">
+                        <div class="opportunity-header">
+                            <span class="symbol">Error</span>
+                        </div>
+                        <div class="opportunity-details">Failed to load opportunities: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+
+                if (!stats.error) {
+                    document.getElementById('total-opportunities').textContent = stats.total_opportunities || 0;
+                    document.getElementById('avg-spread').textContent = stats.avg_spread ? `${stats.avg_spread.toFixed(2)}%` : 'N/A';
+                    document.getElementById('max-spread').textContent = stats.max_spread ? `${stats.max_spread.toFixed(2)}%` : 'N/A';
+                    document.getElementById('last-update').textContent = stats.last_update ?
+                        new Date(stats.last_update).toLocaleTimeString() : 'Never';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadData() {
+            await Promise.all([loadOpportunities(), loadStats()]);
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>

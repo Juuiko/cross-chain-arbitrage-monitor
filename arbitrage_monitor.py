@@ -38,7 +38,7 @@ class ArbitrageMonitor:
         self.session = None
         self.price_data: Dict[str, List[PriceData]] = {}
         self.opportunities: List[ArbitrageOpportunity] = []
-        self.min_spread_pct = 0.1
+        self.min_spread_pct = 0.05
         self.symbols = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'AVAX-USD']
 
     async def __aenter__(self):

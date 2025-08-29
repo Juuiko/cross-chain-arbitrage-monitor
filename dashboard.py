@@ -16,19 +16,19 @@ def dashboard():
 def get_opportunities():
     """API endpoint to get recent opportunities"""
     try:
-        df = pd.read_csv('/app/data/opportunities.csv')
+        df = pd.read_csv('./opportunities.csv')
         df['timestamp'] = pd.to_datetime(df['timestamp'])
 
         # Get last hour of opportunities
         one_hour_ago = datetime.now() - timedelta(hours=1)
         recent_df = df[df['timestamp'] > one_hour_ago]
 
-        opportunities = recent_df.to_dict('records')
+        opportunities = recent_df
 
         return jsonify({
             'success': True,
             'count': len(opportunities),
-            'opportunities': opportunities
+            'opportunities': opportunities.to_dict(orient='records'),
         })
     except FileNotFoundError:
         return jsonify({
@@ -46,7 +46,7 @@ def get_opportunities():
 def get_stats():
     """API endpoint for summary stats"""
     try:
-        df = pd.read_csv('/app/data/opportunities.csv')
+        df = pd.read_csv('./opportunities.csv')
         df['timestamp'] = pd.to_datetime(df['timestamp'])
 
         # Calculate stats
