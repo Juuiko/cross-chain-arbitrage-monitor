@@ -225,7 +225,7 @@ class ArbitrageMonitor:
             )
 
     @staticmethod
-    def save_to_csv(opportunities: List[ArbitrageOpportunity], filename: str = "opportunities.csv"):
+    def save_to_csv(opportunities: List[ArbitrageOpportunity], filename: str = "./data/opportunities.csv"):
         """Save opportunities to CSV using pandas"""
         if not opportunities:
             return

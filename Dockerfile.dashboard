@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install Flask and pandas
+RUN pip install flask>=2.0.0 pandas>=2.0.0
+
+# Create templates directory
+RUN mkdir -p templates
+
+# Copy dashboard files
+COPY dashboard.py .
+COPY ./templates/dashboard.html templates/
+
+# Expose port
+EXPOSE 8080
+
+# Run dashboard
+CMD ["python", "dashboard.py"]

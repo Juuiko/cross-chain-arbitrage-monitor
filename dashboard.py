@@ -16,7 +16,7 @@ def dashboard():
 def get_opportunities():
     """API endpoint to get recent opportunities"""
     try:
-        df = pd.read_csv('./opportunities.csv')
+        df = pd.read_csv('./data/opportunities.csv')
         df['timestamp'] = pd.to_datetime(df['timestamp'])
 
         # Get last hour of opportunities
@@ -46,7 +46,7 @@ def get_opportunities():
 def get_stats():
     """API endpoint for summary stats"""
     try:
-        df = pd.read_csv('./opportunities.csv')
+        df = pd.read_csv('./data/opportunities.csv')
         df['timestamp'] = pd.to_datetime(df['timestamp'])
 
         # Calculate stats
